@@ -3,32 +3,21 @@ const { ObjectId } = Schema.Types;
 
 const MenteeSchema = new Schema(
   {
-    // name: {
-    //   type: String,
-    //   minlength: 2,
-    //   maxlength: 50,
-    //   required: true,
-    //   trim: true
-    // },
-    // email: {
-    //   type: String,
-    //   required: true,
-    //   unique: true,
-    // },
-    // password: {
-    //   type: String,
-    //   required: true,
-
-    // },
-    photo: {
+    name: {
       type: String,
+      required: true,
     },
-    firebaseUserId: {
+    email: {
       type: String,
+      required: true,
+    },
+    uid: {
+      type: String,
+      unique: true,
+      required: true,
     },
     class: {
       type: String,
-      required: true,
     },
     address: {
       line1: String,
@@ -40,7 +29,7 @@ const MenteeSchema = new Schema(
     mentors: [
       {
         type: ObjectId,
-        ref: "Mentor",
+        ref: "mentors",
       },
     ],
     isDeleted: {
@@ -51,4 +40,4 @@ const MenteeSchema = new Schema(
   { timestamps: true }
 );
 
-module.exports = model("Mentee", MenteeSchema);
+module.exports = model("mentees", MenteeSchema);

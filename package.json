@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon app"
+    "start": "node app",
+    "dev": "npx nodemon app"
   },
   "keywords": [],
   "author": "",
@@ -21,5 +22,8 @@
     "mongoose": "^6.8.4",
     "multer": "^1.4.5-lts.1",
     "multer-s3": "^3.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
   }
 }

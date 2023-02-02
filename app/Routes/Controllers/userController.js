@@ -1,87 +1,53 @@
-const jwt = require('jsonwebtoken');
-const User = require('../../models/user');
-const cloudinary = require('../../Services/cloudinary');
+const Mentor = require("../../models/mentor");
+const Mentee = require("../../models/mentee");
+const cloudinary = require("../../Services/cloudinary");
+const ROLES = require("../../utils/RolesEnum");
 
 const createUser = async (req, res) => {
-  const { fullname, email, password } = req.body;
-  const isNewUser = await User.isThisEmailInUse(email);
-  if (!isNewUser)
-    return res.json({
-      success: false,
-      message: 'This email is already in use, try sign-in',
-    });
-  const user = await User({
-    fullname,
-    email,
-    password,
-  });
-  await user.save();
-  res.json({
-    success: true,
-    user
-  });
+  const { name, email, uid, role } = req.body;
+  console.log({ name, email, role });
+  const userModel = role === ROLES.MENTEE ? Mentee : Mentor;
+  try {
+    await userModel.create({ uid, email, name });
+  } catch (e) {
+    res.status(400).json({ msg: "error" });
+    console.log("error");
+    return;
+  }
+  console.log("user created");
+  res.json({ msg: "sucessfully created" });
 };
 
 const userSignIn = async (req, res) => {
-  const { email, password } = req.body;
-
-  const user = await User.findOne({ email });
-  if (!user)
-    return res.json({
-      success: false,
-      message: 'user not found, with the given email!',
-    });
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch)
-    return res.json({
-      success: false,
-      message: 'email / password does not match!',
-    });
-
-  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1d', }
-  );
-
-  let oldTokens = user.tokens || [];
-
-  if (oldTokens.length) {
-    oldTokens = oldTokens.filter(t => {
-      const timeDiff = (Date.now() - parseInt(t.signedAt)) / 1000;
-      if (timeDiff < 86400) {
-        return t;
-      }
-    });
+  const { uid, role } = req.body;
+  console.log({ uid, role });
+  const userModel = role === ROLES.MENTEE ? Mentee : Mentor;
+  // Mentee.collection.name
+  try {
+    const user = await userModel.findOne({ uid });
+    console.log(user, userModel.collection.name);
+    if (user) {
+      res.json({ msg: "sucessfull" });
+    } else {
+      res.status(400).json({ msg: "invalid credentials" });
+    }
+  } catch (e) {
+    res.status(500).json({ msg: "server error" });
   }
-
-  await User.findByIdAndUpdate(user._id, {
-    tokens: [...oldTokens, { token, signedAt: Date.now().toString() }],
-  });
-
-  const userInfo = {
-    fullname: user.fullname,
-    email: user.email,
-    profilePic: user.profilePic ? user.profilePic : '',
-  };
-
-  res.json({
-    success: true,
-    user: userInfo, token
-  });
 };
 
 const uploadProfile = async (req, res) => {
   const { user } = req;
   // console.log(req)
   if (!user)
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: 'unauthorized access!'
-      });
+    return res.status(401).json({
+      success: false,
+      message: "unauthorized access!",
+    });
   // console.log(user)
   try {
     const result = await cloudinary.uploader.upload(req.file.path, {
-      public_id: `${user._id}_profile`
+      public_id: `${user._id}_profile`,
       // width: 500,
       // height: 500,
       // crop: 'fill',
@@ -92,48 +58,48 @@ const uploadProfile = async (req, res) => {
       { profilePic: result.url },
       { new: true }
     );
-    res.status(201).json(
-      {
-        success: true,
-        message: 'Your profile has updated!'
-      }
-    );
+    res.status(201).json({
+      success: true,
+      message: "Your profile has updated!",
+    });
   } catch (error) {
     res.status(500).json({
-        success: error,
-        message: 'server error, try after some time'
-      })
+      success: error,
+      message: "server error, try after some time",
+    });
   }
 };
 
-const signOut = async (req, res) => {
-  if (req.headers && req.headers.authorization) {
-    const token = req.headers.authorization.split(' ')[1];
-    if (!token) {
-      return res.status(401).json(
-        {
-          success: false,
-          message: 'Authorization fail!'
-        }
-      );
+const getRole = async (req, res) => {
+  const { uid } = req.params;
+  try {
+    let user = await Mentee.findOne({ uid }).lean();
+    if (user) {
+      res.json({ role: ROLES.MENTEE });
+      return;
     }
-
-    const tokens = req.user.tokens;
-    const newTokens = tokens.filter(t => t.token !== token);
-    await User.findByIdAndUpdate(req.user._id, { tokens: newTokens });
-    res.json(
-      {
-        success: true,
-        message: 'Sign out successfully!'
-      }
-    );
+    user = await Mentor.findOne({ uid }).lean();
+    if (user) {
+      res.json({ role: ROLES.MENTOR });
+      return;
+    }
+    res.status(400).json({ msg: "no user" });
+  } catch (e) {
+    res.json({ msg: "server error" });
   }
+};
+
+const hasBio = async (req, res) => {
+  const { uid } = req.params;
+  const { role } = req.query;
+  console.log({ uid, role });
+  res.json(true);
 };
 
 module.exports = {
   createUser,
   userSignIn,
   uploadProfile,
-  signOut,
-
-}
+  hasBio,
+  getRole,
+};
