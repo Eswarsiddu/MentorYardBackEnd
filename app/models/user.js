@@ -1,54 +1,44 @@
-const { Schema, model } = require('mongoose');
-const bcrypt = require('bcrypt');
+const { Schema, model } = require("mongoose");
+const { MENTEE, MENTOR } = require("../utils/RolesEnum");
 
-const userSchema = new Schema({
-  fullname: {
-    type: String,
-    required: true,
+const userSchema = new Schema(
+  {
+    uid: {
+      type: String,
+      unique: true,
+      required: true,
+    },
+    role: {
+      type: String,
+      enum: [MENTEE, MENTOR],
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+    email: {
+      type: String,
+      required: true,
+    },
+    phoneNumber: {
+      type: String,
+      required: true,
+    },
+    address: {
+      line1: String,
+      line2: String,
+      city: String,
+      state: String,
+      country: String,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    profilePic: String,
   },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  password: {
-    type: String,
-    required: true,
-    
-  },
-  profilePic: String,
-  tokens: [{ type: Object }],
-});
+  { timestamps: true }
+);
 
-userSchema.pre('save', function (next) {
-  if (this.isModified('password')) {
-    bcrypt.hash(this.password, 8, (err, hash) => {
-      if (err) return next(err);
-      this.password = hash;
-      next();
-    });
-  }
-});
-
-userSchema.methods.comparePassword = async function (password) {
-  if (!password) throw new Error('Password is mission, can not compare!');
-  try {
-    const result = await bcrypt.compare(password, this.password);
-    return result;
-  } catch (error) {
-    console.log('Error while comparing password!', error.message);
-  }
-};
-userSchema.statics.isThisEmailInUse = async function (email) {
-  if (!email) throw new Error('Invalid Email');
-  try {
-    const user = await this.findOne({ email });
-    if (user) return false;
-    return true;
-  } catch (error) {
-    console.log('error inside isThisEmailInUse method', error.message);
-    return false;
-  }
-};
-
-module.exports = model('User', userSchema);
+module.exports = model("users", userSchema);
