@@ -2,12 +2,14 @@ const Mentor = require("../../models/mentor");
 const Mentee = require("../../models/mentee");
 const cloudinary = require("../../Services/cloudinary");
 const ROLES = require("../../utils/RolesEnum");
+const user = require("../../models/user");
 
 const createUser = async (req, res) => {
   const { name, email, uid, role } = req.body;
   console.log({ name, email, role });
   const userModel = role === ROLES.MENTEE ? Mentee : Mentor;
   try {
+    await user.create();
     await userModel.create({ uid, email, name });
   } catch (e) {
     res.status(400).json({ msg: "error" });
