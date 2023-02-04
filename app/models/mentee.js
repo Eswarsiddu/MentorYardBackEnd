@@ -3,7 +3,16 @@ const { ObjectId } = Schema.Types;
 
 const MenteeSchema = new Schema(
   {
-    class: {
+    uid: {
+      type: String,
+      unique: true,
+      required: true,
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "users",
+    },
+    standard: {
       type: String,
     },
     mentors: [

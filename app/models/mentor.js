@@ -3,6 +3,15 @@ const { ObjectId } = Schema.Types;
 
 const MentorSchema = new Schema(
   {
+    uid: {
+      type: String,
+      unique: true,
+      required: true,
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "users",
+    },
     occupation: {
       type: String,
     },
