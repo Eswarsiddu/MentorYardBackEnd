@@ -5,6 +5,13 @@ const multerS3 = require('multer-s3')
 
 dotenv.config()
 
+// create account
+// create IAM user
+// search for s3 in searchbox
+// create a bucket
+// allow read and write permissions by making public access
+// craete access key and secret access key in settings
+
 // configuring  aws instance
 aws.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY,
