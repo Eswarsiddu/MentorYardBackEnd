@@ -1,9 +1,15 @@
 const Mentor = require("../../models/mentor");
 const Mentee = require("../../models/mentee");
-const cloudinary = require("../../Services/cloudinary");
+// const cloudinary = require("cloudinary").v2;
+
+// cloudinary.config({
+//   cloud_name: process.env.CLOUDINARY_USER_NAME,
+//   api_key: process.env.CLOUDINARY_API_KEY,
+//   api_secret: process.env.CLOUDINARY_API_SECRET,
+// });
 const ROLES = require("../../utils/RolesEnum");
 const User = require("../../models/user");
-const user = require("../../models/user");
+// const { Base64 } = require("js-base64");
 
 const createUser = async (req, res) => {
   const { name, email, uid, role } = req.body;
@@ -36,17 +42,13 @@ const userSignIn = async (req, res) => {
 };
 
 const uploadProfile = async (req, res) => {
-  const { user } = req;
+  const { uid } = req.params;
+  // const { user } = req;
   // console.log(req)
-  if (!user)
-    return res.status(401).json({
-      success: false,
-      message: "unauthorized access!",
-    });
-  // console.log(user)
+  const userObject = await User.findOne({ uid });
   try {
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      public_id: `${user._id}_profile`,
+    const result = await cloudinary.uploader.upload(`data`, {
+      public_id: `${uid}_profile`,
       // width: 500,
       // height: 500,
       // crop: 'fill',
@@ -79,25 +81,10 @@ const getRole = async (req, res) => {
   }
 };
 
-const hasBio = async (req, res) => {
-  const { uid } = req.params;
-  const { role } = req.query;
-  const userObject = await User.findOne({ uid }).lean();
-  console.log({ uid, role, userObject });
-  if (userObject.address) {
-    res.json(true);
-  } else {
-    res.status(400).json({ msg: "no bio" });
-  }
-};
-
 const getBio = async (req, res) => {
   const { uid } = req.params;
   const { role } = req.query;
   const userObject = await User.findOne({ uid }).lean();
-  // let userModel = Mentee;
-  // if (role == ROLES.MENTOR) userModel = Mentor;
-  // const userModelObject = await userModel.findOne({ uid }).lean();
   if (!userObject.phoneNumber) {
     res.status(400).json({ msg: "not bio info" });
     return;
@@ -105,6 +92,7 @@ const getBio = async (req, res) => {
   const bioData = {
     phoneNumber: userObject.phoneNumber,
     address: userObject.address,
+    profilePic: userObject.profilePic,
   };
   if (role == ROLES.MENTOR) {
     const mentorObject = await Mentor.findOne({ uid });
@@ -118,7 +106,10 @@ const getBio = async (req, res) => {
 const createBio = async (req, res) => {
   const { uid } = req.params;
   const { role } = req.query;
+  const avatar = req.file;
+  // console.log("avatart", Object.keys(avatar));
   const {
+    profilePic,
     phoneNumber,
     line1,
     line2,
@@ -129,8 +120,10 @@ const createBio = async (req, res) => {
     occupation,
     designation,
   } = req.body;
+  console.log({ body: req.body });
   try {
     const userObject = await User.findOne({ uid });
+    userObject.profilePic = profilePic;
     userObject.phoneNumber = phoneNumber;
     userObject.address = {
       line1,
@@ -139,6 +132,11 @@ const createBio = async (req, res) => {
       state,
       country,
     };
+    // const base64URI = Base64.encode(avatar.buffer);
+    // const result = await cloudinary.uploader.upload(
+    //   `data:${avatar.mimeType}:base64,${base64URI}`
+    // );
+    // userObject.profilePic = result.secure_url;
     await userObject.save();
     if (role == ROLES.MENTOR) {
       const mentorObject = await Mentor.findOne({ uid });
@@ -153,7 +151,8 @@ const createBio = async (req, res) => {
     console.log("bio created");
     res.json({ msg: "sucesfull" });
   } catch (e) {
-    console.log("error", e);
+    console.log("error", Object.keys(e.error));
+    console.log("code", e.error.code, "syscall", e.error.path.slice(0, 50));
     res.status(400).json({ msg: "some error" });
   }
 };
@@ -162,7 +161,6 @@ module.exports = {
   createUser,
   userSignIn,
   uploadProfile,
-  hasBio,
   getRole,
   getBio,
   createBio,
