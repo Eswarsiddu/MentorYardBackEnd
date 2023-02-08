@@ -1,11 +1,11 @@
-const Mentor = require('../../models/Mentor');
-const Mentee = require('../../models/mentee');
+const Mentor = require("../../models/Mentor");
+const Mentee = require("../../models/mentee");
 
 const getAllMentors = async (req, res) => {
   try {
     const mentors = await Mentor.find({});
     console.log(mentors);
-    if (mentors.length===0) {
+    if (mentors.length === 0) {
       res.status(404).send({
         status: "error",
         message: "No Mentors found",
@@ -24,142 +24,326 @@ const getAllMentors = async (req, res) => {
   }
 };
 
-
-
-const addMentorByMenteeId = async (req, res) => {
-  const { menteeId } = req.params;
-  const { name, phoneNumber, email, occupation, designation } = req.body;
-
+// Mentor Dashboard
+const addMentor = async (req, res) => {
+  const {
+    name,
+    email,
+    photo,
+    contact,
+    company,
+    occupation,
+    designation,
+    domain,
+    address,
+    isDeleted,
+  } = req.body;
   try {
     const newMentor = await Mentor.create({
       name,
-      phoneNumber,
       email,
+      photo,
+      contact,
       occupation,
       designation,
-      menteeId,
+      domain,
+      company,
+      address,
+      isDeleted,
     });
-    const mentee = await Mentee.findByIdAndUpdate(menteeId, {
-      $push: {
-        myMentors: newMentor._id,
-      },
-    });
-    res.send({
-      status: "success",
-      parent: newMentor,
-    });
+    if (newMentor) {
+      res.send({
+        status: "success",
+        message: "Created new mentor",
+        newMentor,
+      });
+    } else {
+      res.status(400).send({
+        status: "error",
+        message: " Error Creating new mentor",
+      });
+    }
   } catch (error) {
     console.log(error);
-    res.send({
+    res.status(500).send({
       status: "error",
-      message: "Not added successfully",
+      message: "Could Not be added successfully",
+      error,
     });
   }
 };
 
-const getMentorByMenteeId = async (req, res) => {
-  const { studentId } = req.params
-  try {
-    let student = await Student.findById(studentId)
-    if (!student) {
-      res.status(404).send({
-        status: 'error',
-        message: 'student not found'
-      })
-    }
-    else {
-      let Mentor = await student.populate('parents')
-      res.send({
-        student: student.name,
-        Mentor,
-        status: 'Details fetched successfully',
-      })
-    }
-  } catch (err) {
-    res.send({
-      status: 'error  details',
-      message: err
-    })
-  }
-}
-
 const getMentorById = async (req, res) => {
-  const { mentorId } = req.params
+  const { mentorId } = req.params;
   try {
-    const mentor = await Mentor.findById(mentorId)
-    console.log(mentor)
-    if (!Mentor) {
+    const mentor = await Mentor.findById(mentorId);
+    console.log(mentor);
+    if (!mentor) {
       res.status(404).send({
-        status: 'error',
-        message: 'Mentor not found'
-      })
+        status: "error",
+        message: "No such mentor",
+      });
     } else {
       res.send({
-        status: 'success',
-        mentor
-      })
+        status: "success",
+        message: "successfully got mentor details",
+        mentor,
+      });
     }
   } catch (err) {
     res.status(500).send({
-      status: 'error',
-      message: 'Error fetching Mentor from DB'
-    })
+      status: "error",
+      message: "Error fetching data from DB",
+      err,
+    });
   }
-}
+};
 
 const updateMentorById = async (req, res) => {
-  const { mentorId } = req.params
-  const updatedData = req.body
-  console.log(mentorId, updatedData)
+  const { mentorId } = req.params;
+  const {
+    name,
+    email,
+    photo,
+    contact,
+    company,
+    occupation,
+    designation,
+    domain,
+    address,
+    isDeleted,
+  } = req.body;
+  // console.log(mentorId, updatedData);
+  const updatedData = {
+    name,
+    email,
+    photo,
+    contact,
+    company,
+    occupation,
+    designation,
+    domain,
+    address,
+    isDeleted,
+  };
   try {
-    const updatedMentor = await Mentor.findByIdAndUpdate(mentorId,
-      updatedData, { new: true, runValidators: true })
+    const updatedMentor = await Mentor.findByIdAndUpdate(
+      mentorId,
+      updatedData,
+      { new: true, runValidators: true }
+    );
     if (!updatedMentor) {
+      res.status(400).send({
+        status: "error",
+        message: "No such Mentor found",
+      });
+    } else {
       res.send({
-        status: 'No such Mentor',
-      })
-    }
-    else {
-      res.send({
-        status: 'Updated details Successfully',
-        updatedMentor
-      })
+        status: "success",
+        message: "Updated details Successfully",
+        updatedMentor,
+      });
     }
   } catch (err) {
     res.status(500).send({
-      status: ' Some error occurred',
-      message: 'Cannot Update Mentor'
-    })
+      status: " error ",
+      message: "Cannot Update Mentor",
+      err,
+    });
   }
-}
+};
 
 const deleteMentorById = async (req, res) => {
-  const { mentorId } = req.params
-  console.log(mentorId)
+  const { mentorId } = req.params;
+  console.log(mentorId);
   try {
-    const mentor = await Mentor.findByIdAndDelete(mentorId)
-    const studentId = mentor.studentId
-    const updateMentee = await Mentee.updateOne({ _id: studentId }, {
-      $pull: {
-        parents: mentorId
-      }
-    })
+    const deletedMentor = await Mentor.findByIdAndDelete(mentorId);
+    // const menteeId = mentor.menteeId;
+    // const updateMentee = await Mentee.updateOne(
+    //   { _id: menteeId },
+    //   {
+    //     $pull: {
+    //       myMentors : mentorId,
+    //     },
+    //   }
+    // );
     res.send({
-      status: 'Deleted Successfully',
-      updateMentee
-    })
+      status: "success",
+      message: "Deleted Successfully",
+      deletedMentor,
+    });
   } catch (err) {
     res.status(500).send({
-      status: 'Cannot delete internal error'
-    })
+      status: "Cannot delete internal error",
+    });
   }
-}
+};
 
-module.exports= {
-  getMentorByMenteeId,
+const getActiveMentors = async (req, res) => {
+  try {
+    const mentors = await Mentor.find({ isDeleted: false });
+    console.log(mentors);
+    if (mentors.length === 0) {
+      res.status(404).send({
+        status: "error",
+        message: "No Mentors found",
+      });
+    } else {
+      res.send({
+        status: "successful",
+        mentors,
+      });
+    }
+  } catch (err) {
+    res.status(500).send({
+      status: "error",
+      message: "Error fetching Mentor from DB",
+    });
+  }
+};
+
+const getDeactivatedMentors = async (req, res) => {
+  try {
+    const mentors = await Mentor.find({ isDeleted: true });
+    console.log(mentors);
+    if (mentors.length === 0) {
+      res.status(404).send({
+        status: "error",
+        message: "No Mentors found",
+      });
+    } else {
+      res.send({
+        status: "successful",
+        mentors,
+      });
+    }
+  } catch (err) {
+    res.status(500).send({
+      status: "error",
+      message: "Error fetching Mentor from DB",
+    });
+  }
+};
+
+const deActivateMentorById = async (req, res) => {
+  const { mentorId } = req.params;
+  try {
+    const updatedMentor = await Mentor.findByIdAndUpdate(
+      mentorId,
+      { isDeleted: true },
+      { new: true, runValidators: true }
+    );
+    if (!updatedMentor) {
+      res.status(400).send({
+        status: "error",
+        message: "No such Mentor found",
+      });
+    } else {
+      res.send({
+        status: "success",
+        message: "Updated details Successfully",
+        updatedMentor,
+      });
+    }
+  } catch (err) {
+    res.status(500).send({
+      status: " error ",
+      message: "Cannot Update Mentor",
+      err,
+    });
+  }
+};
+
+const reActivateMentorById = async (req, res) => {
+  const { mentorId } = req.params;
+  try {
+    const updatedMentor = await Mentor.findByIdAndUpdate(
+      mentorId,
+      { isDeleted: false },
+      { new: true, runValidators: true }
+    );
+    if (!updatedMentor) {
+      res.status(400).send({
+        status: "error",
+        message: "No such Mentor found",
+      });
+    } else {
+      res.send({
+        status: "success",
+        message: "Updated details Successfully",
+        updatedMentor,
+      });
+    }
+  } catch (err) {
+    res.status(500).send({
+      status: " error ",
+      message: "Cannot Update Mentor",
+      err,
+    });
+  }
+};
+
+const connectMentorAndMentee = async (req, res) => {
+  const { menteeId, mentorId } = req.body;
+  try {
+    const mentor = await Mentor.findByIdAndUpdate(mentorId, {
+      $addToSet: { myMentees: menteeId },
+    });
+    const mentee = await Mentee.findByIdAndUpdate(menteeId, {
+      $addToSet: { myMentors: mentorId },
+    });
+    res.send({
+      status: "success",
+      message: "connected Successfully",
+      mentor,
+      mentee,
+    });
+  } catch (err) {
+    res.status(500).send({
+      status: " error ",
+      message: "Could nnot connect",
+      err,
+    });
+  }
+};
+
+// Mentee dashboard - my-mentors
+const getMentorsByMenteeId = async (req, res) => {
+  const { menteeId } = req.params;
+  try {
+    let mentee = await Mentee.findById(menteeId).populate("mentors");
+    if (!mentee) {
+      res.status(404).send({
+        status: "error",
+        message: "student not found",
+      });
+    } else {
+      // let mentors = await mentee.populate("myMentors");
+      res.send({
+        mentee: mentee,
+        // mentors,
+        status: "success",
+        message: "Details fetched successfully",
+      });
+    }
+  } catch (err) {
+    res.send({
+      status: "error  details",
+      message: err,
+    });
+  }
+};
+
+module.exports = {
+  getMentorsByMenteeId,
   getMentorById,
-  addMentorByMenteeId,
+  addMentor,
   updateMentorById,
   deleteMentorById,
-  getAllMentors
-}
+  getAllMentors,
+  getActiveMentors,
+  getDeactivatedMentors,
+  deActivateMentorById,
+  reActivateMentorById,
+  connectMentorAndMentee,
+};

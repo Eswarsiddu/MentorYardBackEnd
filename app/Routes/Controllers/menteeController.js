@@ -2,11 +2,12 @@ const Mentee = require("../../models/mentee");
 // const Mentor = require("../../models/mentor");
 
 const addMentee = async (req, res) => {
-  const { name, photo, email, standard,address } = req.body;
+  const { name, email, photo, contact, standard, address } = req.body;
   const menteeData = {
     name,
-    photo,
     email,
+    photo,
+    contact,
     standard,
     address,
   };
@@ -99,6 +100,8 @@ const deleteMenteeById = async (req, res) => {
     });
   }
 };
+
+
 
 module.exports = {
   getAllMentees,

@@ -1,25 +1,40 @@
-const { Router } = require('express')
+const { Router } = require("express");
 const {
-  getMentorByMenteeId,
+  getMentorsByMenteeId,
   getMentorById,
-  addMentorByMenteeId,
+  addMentor,
+  reActivateMentorById,
+  deActivateMentorById,
   updateMentorById,
   deleteMentorById,
-  getAllMentors
-} = require('../Routes/Controllers/mentorController');
+  getAllMentors,
+  getActiveMentors,
+  getDeactivatedMentors,
+  connectMentorAndMentee,
+} = require("../Routes/Controllers/mentorController");
 
-const mentorRouter = Router()
+const mentorRouter = Router();
 
-mentorRouter.post("/:menteeId", addMentorByMenteeId);
+mentorRouter.post("/", addMentor);
 
-
-mentorRouter.get('/', getAllMentors)
-mentorRouter.get('/:mentorId', getMentorById)
-mentorRouter.get("/:menteeId", getMentorByMenteeId);
-
-
-mentorRouter.put('/:mentorId', updateMentorById)
-mentorRouter.delete('/:mentorId', deleteMentorById)
+mentorRouter.put("/deactivate/:mentorId", deActivateMentorById);
+mentorRouter.put("/reactivate/:mentorId", reActivateMentorById);
 
 
-module.exports = mentorRouter
+mentorRouter.put("/connect", connectMentorAndMentee);
+
+
+
+
+mentorRouter.get("/", getAllMentors);
+mentorRouter.get("/active", getActiveMentors);
+mentorRouter.get("/inactive", getDeactivatedMentors);
+
+
+mentorRouter.get("/:mentorId", getMentorById);
+mentorRouter.get("/my-mentors/:menteeId", getMentorsByMenteeId);
+
+mentorRouter.put("/:mentorId", updateMentorById);
+mentorRouter.delete("/:mentorId", deleteMentorById);
+
+module.exports = mentorRouter;
