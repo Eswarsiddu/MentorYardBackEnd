@@ -2,8 +2,8 @@ const express = require('express');
 const dotenv = require('dotenv');
 // const cors = require('cors')
 const { mongoConnect } = require('./app/Services/mongo_connector')
-// const mentorRouter = require('./app/Routers/familyRouter');
-// const studentRouter = require('./app/Routers/studentRouter');
+const mentorRouter = require('./app/Routers/mentorRouter');
+const menteeRouter = require('./app/Routers/menteeRouter');
 
 const app = express();
 dotenv.config()
@@ -15,7 +15,7 @@ app.use(express.json())
 // app.use(cors())
 
 
-// app.use('/mentor', mentorRouter)
-// app.use('/student', studentRouter)
+app.use('/mentor', mentorRouter)
+app.use('/mentee', menteeRouter)
 
 app.listen(port, () => console.log(`server started at http://localhost:${port}`))

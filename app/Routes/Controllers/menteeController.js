@@ -1,112 +1,109 @@
-const Mentee = require('../../models/mentee');
+const Mentee = require("../../models/mentee");
+// const Mentor = require("../../models/mentor");
 
 const addMentee = async (req, res) => {
-  let imageUrl = await req.file.location
-  let fileName = await req.file.key
-  const { name,
-    rollNumber,
-    standard,
-    section,
-    address } = req.body
+  const { name, photo, email, standard,address } = req.body;
   const menteeData = {
     name,
-    photo: imageUrl,
-    rollNumber,
+    photo,
+    email,
     standard,
-    section,  
-    address
-  }
+    address,
+  };
   try {
-    const newMentee = await Mentee.create(menteeData)
+    const newMentee = await Mentee.create(menteeData);
     res.send({
-      status: 'Added new Mentee successfully',
-      Mentee: newMentee
-    })
+      status: "Added new Mentee successfully",
+      mentee: newMentee,
+    });
   } catch (err) {
     res.status(500).send({
-      status: 'error occurred',
-      msg: err
-    })
+      status: "error occurred",
+      msg: err,
+    });
   }
-}
+};
 
-const getAllStudents = async (req, res) => {
+const getAllMentees = async (req, res) => {
   try {
-    let studentsList = await Student.find({})
+    let menteeList = await Mentee.find({});
     res.send({
-      status: 'Details fetched successfully',
-      total: studentsList.length,
-      studentsList
-    })
+      status: "Details fetched successfully",
+      total: menteeList.length,
+      menteeList,
+    });
   } catch (err) {
     res.send({
-      status: 'error fetching details',
-      message: err
-    })
+      status: "error fetching details",
+      message: err,
+    });
   }
-}
+};
 
-const getStudentById = async (req, res) => {
-  const { studentId } = req.params
+const getMenteeById = async (req, res) => {
+  const { menteeId } = req.params;
   try {
-    const student = await Student.findById(studentId)
-    if (!Student) {
+    const mentee = await Mentee.findById(menteeId);
+    if (!mentee) {
       res.status(404).send({
-        status: 'error',
-        msg: 'Student not found'
-      })
+        status: "error",
+        message: "Mentee data not found",
+      });
     } else {
       res.send({
-        status: 'success',
-        student
-      })
+        status: "success",
+        mentee,
+      });
     }
   } catch (err) {
     res.status(500).send({
-      status: 'error',
-      msg: 'Error fetching Student from DB'
-    })
+      status: "error",
+      message: "Error fetching Mentee from DB",
+    });
   }
-}
+};
 
-const updateStudentById = async (req, res) => {
-  const { studentId } = req.params
-  const updatedData = req.body
+const updateMenteeById = async (req, res) => {
+  const { menteeId } = req.params;
+  const updatedData = req.body;
   try {
-    const updatedStudent = await Student.findByIdAndUpdate(studentId,
-      updatedData, { new: true, runValidators: true })
+    const updatedMentee = await Mentee.findByIdAndUpdate(
+      menteeId,
+      updatedData,
+      { new: true, runValidators: true }
+    );
     res.send({
-      status: 'Updated details Successfully',
-      updatedStudent
-    })
+      status: "Updated details Successfully",
+      updatedMentee,
+    });
   } catch (err) {
     res.status(500).send({
-      status: ' Some error occurred',
-      msg: 'Cannot Update Student'
-    })
+      status: " Some error occurred",
+      msg: "Cannot Update Mentee",
+    });
   }
-}
+};
 
-const deleteStudentById = async (req, res) => {
-  const { studentId } = req.params
-  console.log(studentId)
+const deleteMenteeById = async (req, res) => {
+  const { menteeId } = req.params;
+  console.log(menteeId);
   try {
-    const student = await Student.findByIdAndDelete(studentId)
+    const mentee = await Mentee.findByIdAndDelete(menteeId);
     res.send({
-      status: 'Deleted Successfully',
-      student
-    })
+      status: "Deleted Successfully",
+      mentee,
+    });
   } catch (err) {
     res.status(500).send({
-      status: 'Cannot delete internal error'
-    })
+      status: "Cannot delete internal error",
+    });
   }
-}
+};
 
 module.exports = {
-  getAllStudents,
-  getStudentById,
-  addStudent,
-  updateStudentById,
-  deleteStudentById
-}
+  getAllMentees,
+  getMenteeById,
+  addMentee,
+  updateMenteeById,
+  deleteMenteeById,
+};

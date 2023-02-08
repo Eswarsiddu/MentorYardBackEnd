@@ -42,7 +42,7 @@ const MentorSchema = new Schema({
     trim: true,
   },
 
-  mentees: [{
+  myMentees: [{
     type: ObjectId,
     ref: 'Mentee',
   }],

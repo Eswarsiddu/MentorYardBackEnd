@@ -3,22 +3,21 @@ const { ObjectId } = Schema.Types;
 
 const MenteeSchema = new Schema(
   {
-    // name: {
-    //   type: String,
-    //   minlength: 2,
-    //   maxlength: 50,
-    //   required: true,
-    //   trim: true
-    // },
-    // email: {
-    //   type: String,
-    //   required: true,
-    //   unique: true,
-    // },
+    name: {
+      type: String,
+      minlength: 2,
+      maxlength: 50,
+      required: true,
+      trim: true
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     // password: {
     //   type: String,
     //   required: true,
-
     // },
     photo: {
       type: String,
@@ -26,7 +25,7 @@ const MenteeSchema = new Schema(
     firebaseUserId: {
       type: String,
     },
-    class: {
+    standard: {
       type: String,
       required: true,
     },
@@ -37,7 +36,7 @@ const MenteeSchema = new Schema(
       state: String,
       country: String,
     },
-    mentors: [
+    myMentors: [
       {
         type: ObjectId,
         ref: "Mentor",

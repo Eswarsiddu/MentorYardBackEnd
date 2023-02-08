@@ -5,18 +5,21 @@ const {
   addMentorByMenteeId,
   updateMentorById,
   deleteMentorById,
-  getAllMentor
+  getAllMentors
 } = require('../Routes/Controllers/mentorController');
 
 const mentorRouter = Router()
 
-mentorRouter.get('/', getAllMentor)
-mentorRouter.get('/mentor/:mentorId', getMentorById)
+mentorRouter.post("/:menteeId", addMentorByMenteeId);
+
+
+mentorRouter.get('/', getAllMentors)
+mentorRouter.get('/:mentorId', getMentorById)
+mentorRouter.get("/:menteeId", getMentorByMenteeId);
+
 
 mentorRouter.put('/:mentorId', updateMentorById)
 mentorRouter.delete('/:mentorId', deleteMentorById)
 
-mentorRouter.get('/:menteeId', getMentorByMenteeId)
-mentorRouter.post('/:menteeId', addMentorByMenteeId)
 
 module.exports = mentorRouter

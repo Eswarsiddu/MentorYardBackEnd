@@ -1,6 +1,6 @@
 const { Router } = require('express')
 const menteeRouter = Router()
-const { uploadImageTos3 } = require('../Services/uploadToS3')
+// const { uploadImageTos3 } = require('../Services/uploadToS3')
 const {
   getAllMentees,
   getMenteeById,
@@ -17,8 +17,8 @@ menteeRouter.get('/', getAllMentees)
 menteeRouter.get('/:menteeId', getMenteeById)
 
 // verified Routes
-menteeRouter.post('/', uploadImageTos3.single('file'), addMentee)
+menteeRouter.post('/', addMentee)
 menteeRouter.put('/:menteeId', updateMenteeById)
 menteeRouter.delete('/:menteeId', deleteMenteeById)
 
-module.exports = MenteeRouter
+module.exports = menteeRouter
