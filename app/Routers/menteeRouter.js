@@ -10,7 +10,7 @@ const {
   getActiveMentees,
   getInactiveMentees,
   deActivateMenteeById,
-  reActivateMenteeById,
+  reactivateMenteeById,
 } = require("../Routes/Controllers/menteeController");
 
 // MenteeRouter.use(authMiddleware)
@@ -21,7 +21,7 @@ menteeRouter.get("/:menteeId", getMenteeById);
 menteeRouter.get("/active", getActiveMentees);
 menteeRouter.get("/inactive", getInactiveMentees);
 menteeRouter.put("/deactivate/:menteeId", deActivateMenteeById);
-menteeRouter.put("/reactivate/:menteeId", reActivateMenteeById);
+menteeRouter.put("/reactivate/:menteeId", reactivateMenteeById);
 
 menteeRouter.post("/", addMentee);
 menteeRouter.put("/:menteeId", updateMenteeById);

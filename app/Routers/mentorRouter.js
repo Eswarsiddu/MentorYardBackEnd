@@ -11,6 +11,7 @@ const {
   getActiveMentors,
   getInactiveMentors,
   connectMentorAndMentee,
+  disconnectMentorAndMentee,
 } = require("../Routes/Controllers/mentorController");
 
 const mentorRouter = Router();
@@ -23,6 +24,8 @@ mentorRouter.put("/deactivate/:mentorId", deActivateMentorById);
 mentorRouter.put("/reactivate/:mentorId", reActivateMentorById);
 
 mentorRouter.put("/connect", connectMentorAndMentee);
+mentorRouter.put("/disconnect", disconnectMentorAndMentee);
+
 
 mentorRouter.get("/", getAllMentors);
 

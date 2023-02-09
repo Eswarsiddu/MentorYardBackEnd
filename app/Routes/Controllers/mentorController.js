@@ -1,11 +1,31 @@
 const Mentor = require("../../models/Mentor");
 const Mentee = require("../../models/mentee");
+const mongoose = require("mongoose");
+
+const validator = require("validator");
 
 // Admin Dashboard
 const getAllMentors = async (req, res) => {
   try {
-    const mentors = await Mentor.find({});
-    console.log(mentors);
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = parseInt(req.query.skip) || 0;
+
+    if (limit < 0) {
+      return res.status(400).send({
+        status: "error",
+        message: "Limit must be a positive integer",
+      });
+    }
+
+    if (skip < 0) {
+      return res.status(400).send({
+        status: "error",
+        message: "Skip must be a positive integer",
+      });
+    }
+
+    const mentors = await Mentor.find({}).limit(limit).skip(skip);
+
     if (mentors.length === 0) {
       res.status(404).send({
         status: "error",
@@ -20,7 +40,7 @@ const getAllMentors = async (req, res) => {
   } catch (err) {
     res.status(500).send({
       status: "error",
-      message: "Error fetching Mentor from DB",
+      message: "Error fetching Mentors from DB",
     });
   }
 };
@@ -39,7 +59,41 @@ const addMentor = async (req, res) => {
     address,
     isDeleted,
   } = req.body;
+
+  // Validate input
+  if (
+    !name ||
+    !email ||
+    !contact ||
+    !company ||
+    !occupation ||
+    !designation ||
+    !domain ||
+    !address
+  ) {
+    return res.status(400).send({
+      status: "error",
+      message:
+        "Missing required fields. Please provide all the required fields",
+    });
+  }
+
+  if (!validator.isEmail(email)) {
+    return res.status(400).send({
+      status: "error",
+      message: "Invalid email address",
+    });
+  }
+
   try {
+    const mentorExists = await Mentor.findOne({ email });
+    if (mentorExists) {
+      return res.status(400).send({
+        status: "error",
+        message: "A mentor with the same email already exists",
+      });
+    }
+
     const newMentor = await Mentor.create({
       name,
       email,
@@ -61,14 +115,14 @@ const addMentor = async (req, res) => {
     } else {
       res.status(400).send({
         status: "error",
-        message: " Error Creating new mentor",
+        message: "Error creating new mentor",
       });
     }
   } catch (error) {
     console.log(error);
     res.status(500).send({
       status: "error",
-      message: "Could Not be added successfully",
+      message: "Could not add mentor",
       error,
     });
   }
@@ -77,26 +131,37 @@ const addMentor = async (req, res) => {
 // Mentor Dashboard ------ My Profile
 const getMentorById = async (req, res) => {
   const { mentorId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(mentorId)) {
+    return res.status(400).send({
+      status: "error",
+      message: "Invalid mentor ID",
+    });
+  }
+
   try {
-    const mentor = await Mentor.findById(mentorId);
-    console.log(mentor);
+    const mentor = await Mentor.findOne({
+      _id: mentorId,
+      isDeleted: false,
+    });
     if (!mentor) {
       res.status(404).send({
         status: "error",
-        message: "No such mentor",
+        message: "No such mentor ",
       });
     } else {
       res.send({
         status: "success",
-        message: "successfully got mentor details",
+        message: "Successfully got mentor details",
         mentor,
       });
     }
-  } catch (err) {
+  } catch (error) {
+    console.log(error);
     res.status(500).send({
       status: "error",
-      message: "Error fetching data from DB",
-      err,
+      message: "Error fetching data from the database",
+      error,
     });
   }
 };
@@ -106,7 +171,6 @@ const updateMentorById = async (req, res) => {
   const { mentorId } = req.params;
   const {
     name,
-    email,
     photo,
     contact,
     company,
@@ -114,12 +178,17 @@ const updateMentorById = async (req, res) => {
     designation,
     domain,
     address,
-    isDeleted,
   } = req.body;
-  // console.log(mentorId, updatedData);
+
+  if (!name || !contact || !company || !occupation || !domain) {
+    return res.status(400).send({
+      status: "error",
+      message: "All fields are mandatory fields and cannot be left blank.",
+    });
+  }
+
   const updatedData = {
     name,
-    email,
     photo,
     contact,
     company,
@@ -127,31 +196,40 @@ const updateMentorById = async (req, res) => {
     designation,
     domain,
     address,
-    isDeleted,
   };
+
   try {
+    const mentor = await Mentor.findById(mentorId);
+    if (!mentor) {
+      return res.status(404).send({
+        status: "error",
+        message: "No such mentor found",
+      });
+    }
+
+    if (mentor.isDeleted) {
+      return res.status(400).send({
+        status: "error",
+        message: "Cannot update a deleted mentor",
+      });
+    }
+
     const updatedMentor = await Mentor.findByIdAndUpdate(
       mentorId,
       updatedData,
       { new: true, runValidators: true }
     );
-    if (!updatedMentor) {
-      res.status(400).send({
-        status: "error",
-        message: "No such Mentor found",
-      });
-    } else {
-      res.send({
-        status: "success",
-        message: "Updated details Successfully",
-        updatedMentor,
-      });
-    }
+
+    res.send({
+      status: "success",
+      message: "Mentor details updated successfully",
+      updatedMentor,
+    });
   } catch (err) {
-    res.status(500).send({
-      status: " error ",
-      message: "Cannot Update Mentor",
-      err,
+    console.error(err);
+    return res.status(500).send({
+      status: "error",
+      message: "Could not update mentor details, please try again later",
     });
   }
 };
@@ -159,18 +237,30 @@ const updateMentorById = async (req, res) => {
 // Admin/Mentor ------delete my account
 const deleteMentorById = async (req, res) => {
   const { mentorId } = req.params;
-  console.log(mentorId);
   try {
+    if (!mongoose.Types.ObjectId.isValid(mentorId)) {
+      return res.status(400).send({
+        status: "error",
+        message: "Invalid mentorId provided",
+      });
+    }
     const deletedMentor = await Mentor.findByIdAndDelete(mentorId);
-    // const menteeId = mentor.menteeId;
-    // const updateMentee = await Mentee.updateOne(
-    //   { _id: menteeId },
-    //   {
-    //     $pull: {
-    //       myMentors : mentorId,
-    //     },
-    //   }
-    // );
+    if (!deletedMentor) {
+      return res.status(400).send({
+        status: "error",
+        message: "No such mentor found",
+      });
+    }
+    // // Update the mentee to remove the deleted mentor
+    const menteeId = deletedMentor.menteeId;
+    const updateMentee = await Mentee.updateOne(
+      { _id: menteeId },
+      {
+        $pull: {
+          myMentors: mentorId,
+        },
+      }
+    );
     res.send({
       status: "success",
       message: "Deleted Successfully",
@@ -178,14 +268,12 @@ const deleteMentorById = async (req, res) => {
     });
   } catch (err) {
     res.status(500).send({
-      status: "Cannot delete internal error",
+      status: "error",
+      message: "Internal error. Cannot delete mentor",
     });
   }
 };
 
-
-
-// Mentee Dashboard ------ All mentors & home carousel display
 const getActiveMentors = async (req, res) => {
   try {
     const mentors = await Mentor.find({ isDeleted: false });
@@ -193,12 +281,13 @@ const getActiveMentors = async (req, res) => {
     if (mentors.length === 0) {
       res.status(404).send({
         status: "error",
-        message: "No Mentors found",
+        message: "No active Mentors found",
       });
     } else {
       res.send({
-        status: "successful",
+        status: "success",
         mentors,
+        message: "Active Mentors fetched successfully",
       });
     }
   } catch (err) {
@@ -210,7 +299,6 @@ const getActiveMentors = async (req, res) => {
 };
 
 // Admin Dashboard
-
 const getInactiveMentors = async (req, res) => {
   try {
     const mentors = await Mentor.find({ isDeleted: true });
@@ -218,12 +306,13 @@ const getInactiveMentors = async (req, res) => {
     if (mentors.length === 0) {
       res.status(404).send({
         status: "error",
-        message: "No Mentors found",
+        message: "No inactive Mentors found",
       });
     } else {
       res.send({
-        status: "successful",
+        status: "success",
         mentors,
+        message: "Inactive Mentors fetched successfully",
       });
     }
   } catch (err) {
@@ -237,72 +326,107 @@ const getInactiveMentors = async (req, res) => {
 // Mentor Dashboard ------ de-activate-account
 const deActivateMentorById = async (req, res) => {
   const { mentorId } = req.params;
+  if (!mentorId) {
+    return res.status(400).send({
+      status: "error",
+      message: "Mentor Id is required",
+    });
+  }
   try {
-    const updatedMentor = await Mentor.findByIdAndUpdate(
-      mentorId,
-      { isDeleted: true },
-      { new: true, runValidators: true }
-    );
-    if (!updatedMentor) {
+    const mentor = await Mentor.findById(mentorId);
+    if (!mentor) {
       res.status(400).send({
         status: "error",
         message: "No such Mentor found",
       });
+    } else if (mentor.isDeleted) {
+      res.status(400).send({
+        status: "error",
+        message: "Mentor is already de-activated",
+      });
     } else {
+      const updatedMentor = await Mentor.findByIdAndUpdate(
+        mentorId,
+        { isDeleted: true },
+        { new: true, runValidators: true }
+      );
       res.send({
         status: "success",
-        message: "Updated details Successfully",
+        message: "Mentor de-activated successfully",
         updatedMentor,
       });
     }
   } catch (err) {
     res.status(500).send({
-      status: " error ",
-      message: "Cannot Update Mentor",
+      status: "error",
+      message: "Cannot de-activate Mentor",
       err,
     });
   }
 };
 
-// Mentor Dashboard ------ activate-account
 const reActivateMentorById = async (req, res) => {
   const { mentorId } = req.params;
+  if (!mentorId) {
+    return res.status(400).send({
+      status: "error",
+      message: "Mentor id is missing",
+    });
+  }
   try {
+    const mentor = await Mentor.findById(mentorId);
+    if (!mentor) {
+      return res.status(404).send({
+        status: "error",
+        message: "No such Mentor found",
+      });
+    }
+    if (!mentor.isDeleted) {
+      return res.status(400).send({
+        status: "error",
+        message: "Mentor is already active",
+      });
+    }
     const updatedMentor = await Mentor.findByIdAndUpdate(
       mentorId,
       { isDeleted: false },
-
+      { new: true, runValidators: true }
     );
-    if (!updatedMentor) {
-      res.status(400).send({
-        status: "error",
-        message: "No such Mentor found",
-      });
-    } else {
-      res.send({
-        status: "success",
-        message: "Updated details Successfully",
-        updatedMentor,
-      });
-    }
+    return res.send({
+      status: "success",
+      message: "Updated details Successfully",
+      updatedMentor,
+    });
   } catch (err) {
-    res.status(500).send({
+    return res.status(500).send({
       status: " error ",
       message: "Cannot Update Mentor",
       err,
     });
   }
 };
-
-// Mentee/Mentor Dashboard
 
 const connectMentorAndMentee = async (req, res) => {
   const { menteeId, mentorId } = req.body;
   try {
-    const mentor = await Mentor.findByIdAndUpdate(mentorId, {
+    const mentor = await Mentor.findOne({ _id: mentorId, isDeleted: false });
+    if (!mentor) {
+      return res.status(400).send({
+        status: "error",
+        message: "Mentor not found or deleted",
+      });
+    }
+    const mentee = await Mentee.findOne({ _id: menteeId, isDeleted: false });
+    if (!mentee) {
+      return res.status(400).send({
+        status: "error",
+        message: "Mentee not found or deleted",
+      });
+    }
+    await Mentor.findByIdAndUpdate(mentorId, {
       $addToSet: { myMentees: menteeId },
     });
-    const mentee = await Mentee.findByIdAndUpdate(menteeId, {
+    await Mentee.findByIdAndUpdate(menteeId, {
       $addToSet: { myMentors: mentorId },
     });
     res.send({
@@ -313,8 +437,33 @@ const connectMentorAndMentee = async (req, res) => {
     });
   } catch (err) {
     res.status(500).send({
+      status: "error",
+      message: "Could not connect",
+      err,
+    });
+  }
+};
+
+// remove connection
+const disconnectMentorAndMentee = async (req, res) => {
+  const { menteeId, mentorId } = req.body;
+  try {
+    const mentor = await Mentor.findByIdAndUpdate(mentorId, {
+      $pull: { myMentees: menteeId },
+    });
+    const mentee = await Mentee.findByIdAndUpdate(menteeId, {
+      $pull: { myMentors: mentorId },
+    });
+    res.send({
+      status: "success",
+      message: "disconnected Successfully",
+      mentor,
+      mentee,
+    });
+  } catch (err) {
+    res.status(500).send({
       status: " error ",
-      message: "Could nnot connect",
+      message: "Could not disconnect",
       err,
     });
   }
@@ -324,6 +473,14 @@ const connectMentorAndMentee = async (req, res) => {
 const getMentorsByMenteeId = async (req, res) => {
   const { menteeId } = req.params;
   try {
+    // Validate the menteeId
+    if (!menteeId || !mongoose.Types.ObjectId.isValid(menteeId)) {
+      return res.status(400).send({
+        status: "error",
+        message: "Invalid menteeId provided",
+      });
+    }
+
     let mentee = await Mentee.findById(menteeId, { _id: 0, name: 1 }).populate(
       "myMentors",
       {
@@ -332,27 +489,37 @@ const getMentorsByMenteeId = async (req, res) => {
         domain: 1,
         _id: 0,
         occupation: 1,
-        company:1,
-        photo:1
+        company: 1,
+        photo: 1,
       }
     );
+
+    // Check if mentee is found
     if (!mentee) {
-      res.status(404).send({
+      return res.status(404).send({
         status: "error",
-        message: "student not found",
-      });
-    } else {
-      res.send({
-        mentorsList: mentee.myMentors,
-        // mentors,
-        status: "success",
-        message: "Details fetched successfully",
+        message: "Mentee not found",
       });
     }
+
+    // Check if mentee has any mentors
+    if (!mentee.myMentors || mentee.myMentors.length === 0) {
+      return res.status(404).send({
+        status: "error",
+        message: "Mentee does not have any mentors",
+      });
+    }
+
+    res.send({
+      mentorsList: mentee.myMentors,
+      status: "success",
+      message: "Details fetched successfully",
+    });
   } catch (err) {
     res.send({
-      status: "error  details",
-      message: err,
+      status: "error",
+      message: "An error occurred while fetching mentors for the mentee",
+      error: err,
     });
   }
 };
@@ -369,4 +536,5 @@ module.exports = {
   deActivateMentorById,
   reActivateMentorById,
   connectMentorAndMentee,
+  disconnectMentorAndMentee,
 };
