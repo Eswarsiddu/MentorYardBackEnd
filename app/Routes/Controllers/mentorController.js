@@ -1,6 +1,7 @@
 const Mentor = require("../../models/Mentor");
 const Mentee = require("../../models/mentee");
 
+// Admin Dashboard
 const getAllMentors = async (req, res) => {
   try {
     const mentors = await Mentor.find({});
@@ -24,7 +25,7 @@ const getAllMentors = async (req, res) => {
   }
 };
 
-// Mentor Dashboard
+// Mentor Sign up
 const addMentor = async (req, res) => {
   const {
     name,
@@ -73,6 +74,7 @@ const addMentor = async (req, res) => {
   }
 };
 
+// Mentor Dashboard ------ My Profile
 const getMentorById = async (req, res) => {
   const { mentorId } = req.params;
   try {
@@ -99,6 +101,7 @@ const getMentorById = async (req, res) => {
   }
 };
 
+// Mentor Dashboard ------ Update Profile, Complete registration details
 const updateMentorById = async (req, res) => {
   const { mentorId } = req.params;
   const {
@@ -153,6 +156,7 @@ const updateMentorById = async (req, res) => {
   }
 };
 
+// Admin/Mentor ------delete my account
 const deleteMentorById = async (req, res) => {
   const { mentorId } = req.params;
   console.log(mentorId);
@@ -179,6 +183,9 @@ const deleteMentorById = async (req, res) => {
   }
 };
 
+
+
+// Mentee Dashboard ------ All mentors & home carousel display
 const getActiveMentors = async (req, res) => {
   try {
     const mentors = await Mentor.find({ isDeleted: false });
@@ -202,7 +209,9 @@ const getActiveMentors = async (req, res) => {
   }
 };
 
-const getDeactivatedMentors = async (req, res) => {
+// Admin Dashboard
+
+const getInactiveMentors = async (req, res) => {
   try {
     const mentors = await Mentor.find({ isDeleted: true });
     console.log(mentors);
@@ -225,6 +234,7 @@ const getDeactivatedMentors = async (req, res) => {
   }
 };
 
+// Mentor Dashboard ------ de-activate-account
 const deActivateMentorById = async (req, res) => {
   const { mentorId } = req.params;
   try {
@@ -254,13 +264,14 @@ const deActivateMentorById = async (req, res) => {
   }
 };
 
+// Mentor Dashboard ------ activate-account
 const reActivateMentorById = async (req, res) => {
   const { mentorId } = req.params;
   try {
     const updatedMentor = await Mentor.findByIdAndUpdate(
       mentorId,
       { isDeleted: false },
-      { new: true, runValidators: true }
+
     );
     if (!updatedMentor) {
       res.status(400).send({
@@ -282,6 +293,8 @@ const reActivateMentorById = async (req, res) => {
     });
   }
 };
+
+// Mentee/Mentor Dashboard
 
 const connectMentorAndMentee = async (req, res) => {
   const { menteeId, mentorId } = req.body;
@@ -311,16 +324,26 @@ const connectMentorAndMentee = async (req, res) => {
 const getMentorsByMenteeId = async (req, res) => {
   const { menteeId } = req.params;
   try {
-    let mentee = await Mentee.findById(menteeId).populate("mentors");
+    let mentee = await Mentee.findById(menteeId, { _id: 0, name: 1 }).populate(
+      "myMentors",
+      {
+        name: 1,
+        designation: 1,
+        domain: 1,
+        _id: 0,
+        occupation: 1,
+        company:1,
+        photo:1
+      }
+    );
     if (!mentee) {
       res.status(404).send({
         status: "error",
         message: "student not found",
       });
     } else {
-      // let mentors = await mentee.populate("myMentors");
       res.send({
-        mentee: mentee,
+        mentorsList: mentee.myMentors,
         // mentors,
         status: "success",
         message: "Details fetched successfully",
@@ -342,7 +365,7 @@ module.exports = {
   deleteMentorById,
   getAllMentors,
   getActiveMentors,
-  getDeactivatedMentors,
+  getInactiveMentors,
   deActivateMentorById,
   reActivateMentorById,
   connectMentorAndMentee,
