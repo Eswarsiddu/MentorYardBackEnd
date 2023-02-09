@@ -560,7 +560,7 @@ const getFilteredMentors = async (req, res) => {
   const { name, occupation, designation, company, domain } = req.body;
 
   if (name) {
-    filter.name = name;
+    filter.name = { $regex: name, $options: "i" };
   }
   if (occupation) {
     filter.occupation = occupation;
