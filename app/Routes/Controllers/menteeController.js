@@ -1,5 +1,8 @@
 const Mentee = require("../../models/mentee");
-// const Mentor = require("../../models/mentor");
+const Mentor = require("../../models/mentor");
+const mongoose = require("mongoose");
+
+const validator = require("validator");
 
 // Admin Dashboard
 const getAllMentees = async (req, res) => {
@@ -22,7 +25,6 @@ const getAllMentees = async (req, res) => {
 const addMentee = async (req, res) => {
   const { name, email, photo, contact, standard, address } = req.body;
 
-  // Validate required fields
   if (!name || !email || !contact || !standard || !address) {
     return res.status(400).send({
       status: "error",
@@ -31,7 +33,7 @@ const addMentee = async (req, res) => {
     });
   }
 
-  // Validate email format
+  // email format validation
   if (!validator.isEmail(email)) {
     return res.status(400).send({
       status: "error",
@@ -39,7 +41,7 @@ const addMentee = async (req, res) => {
     });
   }
 
-  // Validate contact format
+  // contact format valitation
   if (!validator.isMobilePhone(contact, "en-IN")) {
     return res.status(400).send({
       status: "error",
@@ -160,7 +162,7 @@ const deleteMenteeById = async (req, res) => {
     }
     mentee.isDeleted = true;
     await mentee.save();
-    // remove mentee data from mentor collection
+    // removing mentee data from mentor collection
     await Mentor.updateMany(
       { mentees: menteeId },
       { $pull: { mentees: menteeId } }
@@ -182,25 +184,27 @@ const deleteMenteeById = async (req, res) => {
 const getActiveMentees = async (req, res) => {
   try {
     const mentees = await Mentee.find({ isDeleted: false });
+    console.log(mentees);
     if (mentees.length === 0) {
-      return res.status(404).send({
+      res.status(404).send({
         status: "error",
         message: "No active Mentees found",
       });
+    } else {
+      res.send({
+        status: "success",
+        mentees,
+        message: "Active Mentees fetched successfully",
+      });
     }
-    res.send({
-      status: "success",
-      message: "Fetched active Mentees successfully",
-      mentees,
-    });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
     return res.status(500).send({
       status: "error",
-      message: "Could not fetch active Mentees, please try again later",
+      message: "Error fetching Mentee data from database",
+      error: error,
     });
   }
-};
+}
 
 // Admin Dashboard
 const getInactiveMentees = async (req, res) => {
@@ -339,11 +343,37 @@ const getMenteesByMentorId = async (req, res) => {
 
 
 
+async function fetchMenteeData(req, res) {
+  try {
+    const menteeId = req.params.menteeId;
+
+    if (!mongoose.Types.ObjectId.isValid(menteeId)) {
+      return res.status(400).send({
+        status: "error",
+        message: "Invalid mentee ID",
+      });
+    }
+
+    const mentee = await Mentee.findById(menteeId);
+
+    return res.send({
+      status: "success",
+      data: mentee,
+    });
+  } catch (error) {
+    return res.status(500).send({
+      status: "error",
+      message: "Error fetching Mentee data from database",
+      error: error,
+    });
+  }
+}
 
 
 
 
 module.exports = {
+  fetchMenteeData,
   getActiveMentees,
   getInactiveMentees,
   deActivateMenteeById,

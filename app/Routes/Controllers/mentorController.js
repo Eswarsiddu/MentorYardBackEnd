@@ -1,4 +1,4 @@
-const Mentor = require("../../models/Mentor");
+const Mentor = require("../../models/mentor");
 const Mentee = require("../../models/mentee");
 const mongoose = require("mongoose");
 
@@ -406,19 +406,31 @@ const reActivateMentorById = async (req, res) => {
   }
 };
 
+
 const connectMentorAndMentee = async (req, res) => {
   const { menteeId, mentorId } = req.body;
+
+  if (
+    !mongoose.Types.ObjectId.isValid(menteeId) ||
+    !mongoose.Types.ObjectId.isValid(mentorId)
+  ) {
+    return res.status(400).send({
+      status: "error",
+      message: "Invalid Mentor or Mentee Id",
+    });
+  }
+
   try {
     const mentor = await Mentor.findOne({ _id: mentorId, isDeleted: false });
     if (!mentor) {
-      return res.status(400).send({
+      return res.status(404).send({
         status: "error",
         message: "Mentor not found or deleted",
       });
     }
     const mentee = await Mentee.findOne({ _id: menteeId, isDeleted: false });
     if (!mentee) {
-      return res.status(400).send({
+      return res.status(404).send({
         status: "error",
         message: "Mentee not found or deleted",
       });
@@ -431,14 +443,14 @@ const connectMentorAndMentee = async (req, res) => {
     });
     res.send({
       status: "success",
-      message: "connected Successfully",
+      message: "Connected Successfully",
       mentor,
       mentee,
     });
   } catch (err) {
     res.status(500).send({
       status: "error",
-      message: "Could not connect",
+      message: "Could not connect, please try again later",
       err,
     });
   }

@@ -2,6 +2,7 @@ const { Router } = require("express");
 const menteeRouter = Router();
 // const { uploadImageTos3 } = require('../Services/uploadToS3')
 const {
+  fetchMenteeData,
   getAllMentees,
   getMenteeById,
   addMentee,
