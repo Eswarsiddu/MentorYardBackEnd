@@ -3,7 +3,6 @@ const Mentee = require("../../models/mentee");
 const mongoose = require("mongoose");
 const validator = require("validator");
 
-
 // Admin Dashboard
 const getAllMentors = async (req, res) => {
   try {

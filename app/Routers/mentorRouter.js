@@ -31,7 +31,6 @@ mentorRouter.get("/filter", getFilteredMentors);
 
 mentorRouter.get("/", getAllMentors);
 
-
 mentorRouter.get("/:mentorId", getMentorById);
 mentorRouter.get("/my-mentors/:menteeId", getMentorsByMenteeId);
 
