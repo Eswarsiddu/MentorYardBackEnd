@@ -3,6 +3,7 @@ const menteeRouter = Router();
 // const { uploadImageTos3 } = require('../Services/uploadToS3')
 const {
   fetchMenteeData,
+  getMenteesByMentorId,
   getAllMentees,
   getMenteeById,
   addMentee,
@@ -17,7 +18,7 @@ const {
 // MenteeRouter.use(authMiddleware)
 
 menteeRouter.get("/", getAllMentees);
-menteeRouter.get("/:menteeId", getMenteeById);
+menteeRouter.get("/get/:menteeId", getMenteeById);
 
 menteeRouter.get("/active", getActiveMentees);
 menteeRouter.get("/inactive", getInactiveMentees);
@@ -27,5 +28,6 @@ menteeRouter.put("/reactivate/:menteeId", reactivateMenteeById);
 menteeRouter.post("/", addMentee);
 menteeRouter.put("/:menteeId", updateMenteeById);
 menteeRouter.delete("/:menteeId", deleteMenteeById);
+menteeRouter.get("/my-mentees/:mentorId", getMenteesByMentorId);
 
 module.exports = menteeRouter;

@@ -326,7 +326,16 @@ const getMenteesByMentorId = async (req, res) => {
         message: "Mentor has been deleted",
       });
     }
-    const mentees = mentor.myMentees.filter((mentee) => !mentee.isDeleted);
+    const mentees = mentor.myMentees
+      .filter((mentee) => !mentee.isDeleted)
+      .map((mentee) => {
+        return {
+          name: mentee.name,
+          email: mentee.email,
+          photo: mentee.photo,
+          standard: mentee.standard,
+        };
+      });
     res.send({
       status: "success",
       message: "Mentees retrieved successfully",
@@ -340,6 +349,10 @@ const getMenteesByMentorId = async (req, res) => {
     });
   }
 };
+
+
+
+
 
 
 

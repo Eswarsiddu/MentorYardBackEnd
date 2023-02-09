@@ -1,5 +1,6 @@
 const { Router } = require("express");
 const {
+  getFilteredMentors,
   getMentorsByMenteeId,
   getMentorById,
   addMentor,
@@ -26,8 +27,10 @@ mentorRouter.put("/reactivate/:mentorId", reActivateMentorById);
 mentorRouter.put("/connect", connectMentorAndMentee);
 mentorRouter.put("/disconnect", disconnectMentorAndMentee);
 
+mentorRouter.get("/filter", getFilteredMentors);
 
 mentorRouter.get("/", getAllMentors);
+
 
 mentorRouter.get("/:mentorId", getMentorById);
 mentorRouter.get("/my-mentors/:menteeId", getMentorsByMenteeId);

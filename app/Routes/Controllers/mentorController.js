@@ -1,8 +1,9 @@
 const Mentor = require("../../models/mentor");
 const Mentee = require("../../models/mentee");
 const mongoose = require("mongoose");
-
 const validator = require("validator");
+
+
 
 // Admin Dashboard
 const getAllMentors = async (req, res) => {
@@ -24,7 +25,24 @@ const getAllMentors = async (req, res) => {
       });
     }
 
-    const mentors = await Mentor.find({}).limit(limit).skip(skip);
+    const mentors = await Mentor.find(
+      {},
+      {
+        _id: 0,
+        email: 0,
+        address: 0,
+        isDeleted: 0,
+        createdAt: 0,
+        updatedAt: 0,
+        __v: 0,
+        contact: 0,
+      }
+    )
+      .limit(limit)
+      .skip(skip);
+    // .select("name photo contact company occupation designation domain");
+
+    const mentorCount = await Mentor.countDocuments();
 
     if (mentors.length === 0) {
       res.status(404).send({
@@ -34,6 +52,7 @@ const getAllMentors = async (req, res) => {
     } else {
       res.send({
         status: "successful",
+        mentorCount,
         mentors,
       });
     }
@@ -274,6 +293,7 @@ const deleteMentorById = async (req, res) => {
   }
 };
 
+// Mentor/home ------ my account
 const getActiveMentors = async (req, res) => {
   try {
     const mentors = await Mentor.find({ isDeleted: false });
@@ -298,7 +318,7 @@ const getActiveMentors = async (req, res) => {
   }
 };
 
-// Admin Dashboard
+// Admin/mentor Dashboard
 const getInactiveMentors = async (req, res) => {
   try {
     const mentors = await Mentor.find({ isDeleted: true });
@@ -406,7 +426,7 @@ const reActivateMentorById = async (req, res) => {
   }
 };
 
-
+// make connection
 const connectMentorAndMentee = async (req, res) => {
   const { menteeId, mentorId } = req.body;
 
@@ -536,7 +556,56 @@ const getMentorsByMenteeId = async (req, res) => {
   }
 };
 
+// mentee dashboard filter
+const getFilteredMentors = async (req, res) => {
+  let filter = {};
+  const { name, occupation, designation, company, domain } = req.body;
+
+  if (name) {
+    filter.name = name;
+  }
+  if (occupation) {
+    filter.occupation = occupation;
+  }
+
+  if (designation) {
+    filter.designation = designation;
+  }
+
+  if (company) {
+    filter.company = company;
+  }
+
+  if (domain) {
+    filter.domain = domain;
+  }
+
+  try {
+    const mentors = await Mentor.find(filter).select(
+      "name occupation designation company domain"
+    );
+    if (mentors.length === 0) {
+      return res.status(404).send({
+        status: "error",
+        message: "No mentors found with the given filter criteria",
+      });
+    }
+    res.send({
+      status: "success",
+      message: "Mentors filtered successfully",
+      mentors,
+    });
+  } catch (err) {
+    return res.status(500).send({
+      status: "error",
+      message: "Error filtering mentors",
+      error: err,
+    });
+  }
+};
+
 module.exports = {
+  getFilteredMentors,
   getMentorsByMenteeId,
   getMentorById,
   addMentor,
