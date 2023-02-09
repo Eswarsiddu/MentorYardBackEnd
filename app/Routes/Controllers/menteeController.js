@@ -204,9 +204,8 @@ const getActiveMentees = async (req, res) => {
       error: error,
     });
   }
-}
+};
 
-// Admin Dashboard
 const getInactiveMentees = async (req, res) => {
   try {
     const mentees = await Mentee.find({ isDeleted: true });
@@ -350,13 +349,7 @@ const getMenteesByMentorId = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-async function fetchMenteeData(req, res) {
+const fetchMenteeData = async (req, res) => {
   try {
     const menteeId = req.params.menteeId;
 
@@ -380,10 +373,7 @@ async function fetchMenteeData(req, res) {
       error: error,
     });
   }
-}
-
-
-
+};
 
 module.exports = {
   fetchMenteeData,

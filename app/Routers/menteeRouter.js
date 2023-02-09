@@ -1,6 +1,5 @@
 const { Router } = require("express");
 const menteeRouter = Router();
-// const { uploadImageTos3 } = require('../Services/uploadToS3')
 const {
   fetchMenteeData,
   getMenteesByMentorId,
@@ -19,6 +18,7 @@ const {
 
 menteeRouter.get("/", getAllMentees);
 menteeRouter.get("/get/:menteeId", getMenteeById);
+menteeRouter.get("/fetch/:menteeId", fetchMenteeData);
 
 menteeRouter.get("/active", getActiveMentees);
 menteeRouter.get("/inactive", getInactiveMentees);
