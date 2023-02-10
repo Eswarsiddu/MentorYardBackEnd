@@ -1,7 +1,8 @@
 const Mentee = require("../../models/mentee");
 const Mentor = require("../../models/mentor");
+const User = require("../..//models/user");
 const mongoose = require("mongoose");
-
+const ROLES = require("../../utils/enums/ROLES");
 const validator = require("validator");
 
 // Admin Dashboard
@@ -23,66 +24,58 @@ const getAllMentees = async (req, res) => {
 
 // Mentee Sign up
 const addMentee = async (req, res) => {
-  const { name, email, photo, contact, standard, address } = req.body;
+  const { firebaseUserId } = req.params;
+  const { name, email } = req.body;
 
-  if (!name || !email || !contact || !standard || !address) {
-    return res.status(400).send({
+  // Validate input
+  if (!name || !email) {
+    return res.status(400).json({
       status: "error",
       message:
-        "Name, email, contact, standard, and address are required fields",
+        "Missing required fields. Please provide all the required fields",
     });
   }
-
-  // email format validation
-  if (!validator.isEmail(email)) {
-    return res.status(400).send({
-      status: "error",
-      message: "Invalid email format",
-    });
-  }
-
-  // contact format valitation
-  if (!validator.isMobilePhone(contact, "en-IN")) {
-    return res.status(400).send({
-      status: "error",
-      message: "Invalid contact number format",
-    });
-  }
-
-  const menteeData = {
-    name,
-    email,
-    photo,
-    contact,
-    standard,
-    address,
-  };
-
   try {
-    const newMentee = await Mentee.create(menteeData);
-    res.send({
+    const newMentee = await Mentee.create({
+      name,
+      email,
+      firebaseUserId,
+    });
+    await User.create({ firebaseUserId, role: ROLES.MENTEE });
+    res.json({
       status: "success",
-      message: "Added new mentee successfully",
-      mentee: newMentee,
+      message: "Created new mentee",
     });
   } catch (error) {
     console.log(error);
-    res.status(500).send({
+    res.status(500).json({
       status: "error",
-      message: "Error adding mentee to the database",
+      message: "Could not add mentee",
       error,
     });
   }
 };
 
+const createMenteeBio = async (req, res) => {
+  const { firebaseUserId } = req.params;
+  const { photo, contact, standard, address } = req.body;
+  const mentee = await Mentee.findOne({ firebaseUserId });
+  mentee.address = address;
+  mentee.standard = standard;
+  mentee.contact = contact;
+  mentee.photo = photo;
+  await mentee.save();
+  res.json({
+    status: "success",
+    mentee,
+  });
+};
+
 // Mentee Dashboard ------ My Profile
 const getMenteeById = async (req, res) => {
-  const { menteeId } = req.params;
+  const { firebaseUserId } = req.params;
   try {
-    const mentee = await Mentee.findOne({
-      _id: menteeId,
-      isDeleted: { $ne: true },
-    });
+    const mentee = await Mentee.findOne({ firebaseUserId });
     if (!mentee) {
       res.status(404).send({
         status: "error",
@@ -106,12 +99,12 @@ const getMenteeById = async (req, res) => {
 
 // Mentee Dashboard ------ update Profile, complete registration form
 const updateMenteeById = async (req, res) => {
-  const { menteeId } = req.params;
+  const { firebaseUserId } = req.params;
   const { name, email, photo, contact, standard, address } = req.body;
 
   const updatedData = { name, email, photo, contact, standard, address };
   try {
-    const mentee = await Mentee.findById(menteeId);
+    const mentee = await Mentee.findOne({ firebaseUserId });
     if (!mentee) {
       return res.status(404).send({
         status: "error",
@@ -125,9 +118,8 @@ const updateMenteeById = async (req, res) => {
       });
     }
     const updatedMentee = await Mentee.findByIdAndUpdate(
-      menteeId,
-      updatedData,
-      { new: true, runValidators: true }
+      mentee._id,
+      updatedData
     );
     res.send({
       status: "success",
@@ -375,8 +367,27 @@ const fetchMenteeData = async (req, res) => {
   }
 };
 
+const getMenteeMentors = async (req, res) => {
+  const { firebaseUserId } = req.params;
+  try {
+    const mentee = await Mentee.findOne({ firebaseUserId }, { myMentors: true })
+      .populate({ myMentors: 1 })
+      .lean();
+    console.log("mentee mentors", mentee);
+    const mentors = mentee.myMentors;
+    res.json(mentors);
+  } catch (e) {
+    return res.status(500).send({
+      status: "error",
+      message: "Error fetching Mentee data from database",
+      error: error,
+    });
+  }
+};
+
 module.exports = {
   fetchMenteeData,
+  createMenteeBio,
   getActiveMentees,
   getInactiveMentees,
   deActivateMenteeById,
@@ -387,4 +398,5 @@ module.exports = {
   updateMenteeById,
   deleteMenteeById,
   getMenteesByMentorId,
+  getMenteeMentors,
 };
