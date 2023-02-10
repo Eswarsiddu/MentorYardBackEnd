@@ -1,6 +1,8 @@
 const Mentor = require("../../models/mentor");
 const Mentee = require("../../models/mentee");
+const User = require("../../models/user");
 const mongoose = require("mongoose");
+const ROLES = require("../../utils/enums/ROLES");
 const validator = require("validator");
 
 // Admin Dashboard
@@ -64,80 +66,32 @@ const getAllMentors = async (req, res) => {
 
 // Mentor Sign up
 const addMentor = async (req, res) => {
-  const {
-    name,
-    email,
-    photo,
-    contact,
-    company,
-    occupation,
-    designation,
-    domain,
-    address,
-    isDeleted,
-  } = req.body;
+  const { firebaseUserId } = req.params;
+  const { name, email } = req.body;
 
   // Validate input
-  if (
-    !name ||
-    !email ||
-    !contact ||
-    !company ||
-    !occupation ||
-    !designation ||
-    !domain ||
-    !address
-  ) {
-    return res.status(400).send({
+  if (!name || !email) {
+    return res.status(400).json({
       status: "error",
       message:
         "Missing required fields. Please provide all the required fields",
     });
   }
 
-  if (!validator.isEmail(email)) {
-    return res.status(400).send({
-      status: "error",
-      message: "Invalid email address",
-    });
-  }
-
   try {
-    const mentorExists = await Mentor.findOne({ email });
-    if (mentorExists) {
-      return res.status(400).send({
-        status: "error",
-        message: "A mentor with the same email already exists",
-      });
-    }
-
     const newMentor = await Mentor.create({
       name,
       email,
-      photo,
-      contact,
-      occupation,
-      designation,
-      domain,
-      company,
-      address,
-      isDeleted,
+      firebaseUserId,
     });
-    if (newMentor) {
-      res.send({
-        status: "success",
-        message: "Created new mentor",
-        newMentor,
-      });
-    } else {
-      res.status(400).send({
-        status: "error",
-        message: "Error creating new mentor",
-      });
-    }
+    await User.create({ firebaseUserId, role: ROLES.MENTOR });
+    res.json({
+      status: "success",
+      message: "Created new mentor",
+    });
   } catch (error) {
     console.log(error);
-    res.status(500).send({
+    res.status(500).json({
       status: "error",
       message: "Could not add mentor",
       error,
@@ -145,22 +99,30 @@ const addMentor = async (req, res) => {
   }
 };
 
+const createMentorBio = async (req, res) => {
+  const { firebaseUserId } = req.params;
+  const { photo, contact, occupation, designation, domain, company, address } =
+    req.body;
+  const mentor = await Mentor.findOne({ firebaseUserId });
+  mentor.address = address;
+  mentor.company = company;
+  mentor.designation = designation;
+  mentor.domain = domain;
+  mentor.occupation = occupation;
+  mentor.contact = contact;
+  mentor.photo = photo;
+  await mentor.save();
+  res.json({
+    status: "success",
+    mentor,
+  });
+};
+
 // Mentor Dashboard ------ My Profile
 const getMentorById = async (req, res) => {
-  const { mentorId } = req.params;
-
-  if (!mongoose.Types.ObjectId.isValid(mentorId)) {
-    return res.status(400).send({
-      status: "error",
-      message: "Invalid mentor ID",
-    });
-  }
-
+  const { firebaseUserId } = req.params;
   try {
-    const mentor = await Mentor.findOne({
-      _id: mentorId,
-      isDeleted: false,
-    });
+    const mentor = await Mentor.findOne({ firebaseUserId });
     if (!mentor) {
       res.status(404).send({
         status: "error",
@@ -183,9 +145,10 @@ const getMentorById = async (req, res) => {
   }
 };
 
+//TODO: update
 // Mentor Dashboard ------ Update Profile, Complete registration details
 const updateMentorById = async (req, res) => {
-  const { mentorId } = req.params;
+  const { firebaseUserId } = req.params;
   const {
     name,
     photo,
@@ -196,13 +159,6 @@ const updateMentorById = async (req, res) => {
     domain,
     address,
   } = req.body;
-
-  if (!name || !contact || !company || !occupation || !domain) {
-    return res.status(400).send({
-      status: "error",
-      message: "All fields are mandatory fields and cannot be left blank.",
-    });
-  }
 
   const updatedData = {
     name,
@@ -216,7 +172,7 @@ const updateMentorById = async (req, res) => {
   };
 
   try {
-    const mentor = await Mentor.findById(mentorId);
+    const mentor = await Mentor.findOne({ firebaseUserId });
     if (!mentor) {
       return res.status(404).send({
         status: "error",
@@ -231,11 +187,8 @@ const updateMentorById = async (req, res) => {
       });
     }
 
-    const updatedMentor = await Mentor.findByIdAndUpdate(
-      mentorId,
-      updatedData,
-      { new: true, runValidators: true }
-    );
+    Object.assign(mentor, updatedData);
+    await mentor.save();
 
     res.send({
       status: "success",
@@ -424,6 +377,7 @@ const reActivateMentorById = async (req, res) => {
   }
 };
 
+//TODO: modify
 // make connection
 const connectMentorAndMentee = async (req, res) => {
   const { menteeId, mentorId } = req.body;
@@ -499,13 +453,14 @@ const disconnectMentorAndMentee = async (req, res) => {
   }
 };
 
+//TODO: Update
 // Mentee dashboard - my-mentors
 const getMentorsByMenteeId = async (req, res) => {
   const { menteeId } = req.params;
   try {
     // Validate the menteeId
     if (!menteeId || !mongoose.Types.ObjectId.isValid(menteeId)) {
-      return res.status(400).send({
+      return res.status(400).json({
         status: "error",
         message: "Invalid menteeId provided",
       });
@@ -588,7 +543,7 @@ const getFilteredMentors = async (req, res) => {
         message: "No mentors found with the given filter criteria",
       });
     }
-    res.send({
+    res.json({
       status: "success",
       message: "Mentors filtered successfully",
       mentors,
@@ -606,6 +561,7 @@ module.exports = {
   getFilteredMentors,
   getMentorsByMenteeId,
   getMentorById,
+  createMentorBio,
   addMentor,
   updateMentorById,
   deleteMentorById,

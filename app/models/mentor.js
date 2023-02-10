@@ -1,4 +1,3 @@
-const validator = require("validator");
 const { Schema, model } = require("mongoose");
 const { ObjectId } = Schema.Types;
 
@@ -6,30 +5,17 @@ const MentorSchema = new Schema(
   {
     firebaseUserId: {
       type: String,
+      required: String,
+      unique: true,
     },
-    // password: {
-    //   type: String,
-    //   required: true,
-    // },
-
     name: {
       type: String,
-      minlength: 2,
-      maxlength: 150,
-      validate: {
-        validator: function (val) {
-          let result = val.replace(/ /g, "");
-          return validator.isAlpha(result);
-        },
-        message: "Name should contain only alphabets with or without spaces",
-      },
-      trim: true,
+      required: true,
     },
 
     email: {
       type: String,
       required: true,
-      unique: true,
     },
 
     photo: {
@@ -38,29 +24,6 @@ const MentorSchema = new Schema(
 
     contact: {
       type: String,
-      required: true,
-    },
-    company: {
-      type: String,
-    },
-    occupation: {
-      type: String,
-      min: 6,
-      max: 500,
-    },
-
-    designation: {
-      type: String,
-      minlength: 2,
-      maxlength: 500,
-      trim: true,
-    },
-
-    domain: {
-      type: String,
-      minlength: 2,
-      maxlength: 500,
-      trim: true,
     },
 
     address: {
@@ -71,10 +34,25 @@ const MentorSchema = new Schema(
       country: String,
     },
 
+    company: {
+      type: String,
+    },
+    occupation: {
+      type: String,
+    },
+
+    designation: {
+      type: String,
+    },
+
+    domain: {
+      type: String,
+    },
+
     myMentees: [
       {
         type: ObjectId,
-        ref: "Mentee",
+        ref: "mentees",
       },
     ],
 
@@ -87,9 +65,4 @@ const MentorSchema = new Schema(
   { timestamps: true }
 );
 
-MentorSchema.pre("save", async function save(next) {
-  this.increment();
-  return next();
-});
-
-module.exports = model("Mentor", MentorSchema);
+module.exports = model("mentors", MentorSchema);
