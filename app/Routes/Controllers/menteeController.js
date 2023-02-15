@@ -26,7 +26,7 @@ const getAllMentees = async (req, res) => {
 const addMentee = async (req, res) => {
   const { firebaseUserId } = req.params;
   const { name, email } = req.body;
-
+  console.log("uid", firebaseUserId, "name,email", name, email);
   // Validate input
   if (!name || !email) {
     return res.status(400).json({
@@ -72,10 +72,35 @@ const createMenteeBio = async (req, res) => {
 };
 
 // Mentee Dashboard ------ My Profile
-const getMenteeById = async (req, res) => {
+const getMenteeByfuid = async (req, res) => {
   const { firebaseUserId } = req.params;
   try {
     const mentee = await Mentee.findOne({ firebaseUserId });
+    if (!mentee) {
+      res.status(404).send({
+        status: "error",
+        message: "Mentee not found",
+      });
+    } else {
+      res.send({
+        status: "success",
+        message: "Mentee data fetched successfully",
+        mentee,
+      });
+    }
+  } catch (err) {
+    res.status(500).send({
+      status: "error",
+      message: "Error fetching Mentee data from database",
+      error: err,
+    });
+  }
+};
+
+const getMenteeById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const mentee = await Mentee.findById(id);
     if (!mentee) {
       res.status(404).send({
         status: "error",
@@ -101,6 +126,7 @@ const getMenteeById = async (req, res) => {
 const updateMenteeById = async (req, res) => {
   const { firebaseUserId } = req.params;
   const { name, email, photo, contact, standard, address } = req.body;
+  console.log("update data", req.body);
 
   const updatedData = { name, email, photo, contact, standard, address };
   try {
@@ -341,6 +367,46 @@ const getMenteesByMentorId = async (req, res) => {
   }
 };
 
+const getMenteeMentor = async (req, res) => {
+  const mentorId = req.params.mentorId;
+  try {
+    const mentor = await Mentor.findById(mentorId).populate("myMentees");
+    if (!mentor) {
+      return res.status(404).send({
+        status: "error",
+        message: "Mentor not found",
+      });
+    }
+    if (mentor.isDeleted) {
+      return res.status(404).send({
+        status: "error",
+        message: "Mentor has been deleted",
+      });
+    }
+    const mentees = mentor.myMentees
+      .filter((mentee) => !mentee.isDeleted)
+      .map((mentee) => {
+        return {
+          name: mentee.name,
+          email: mentee.email,
+          photo: mentee.photo,
+          standard: mentee.standard,
+        };
+      });
+    res.send({
+      status: "success",
+      message: "Mentees retrieved successfully",
+      mentees,
+    });
+  } catch (err) {
+    res.status(500).send({
+      status: "error",
+      message: "Could not retrieve mentees",
+      err,
+    });
+  }
+};
+
 const fetchMenteeData = async (req, res) => {
   try {
     const menteeId = req.params.menteeId;
@@ -371,16 +437,17 @@ const getMenteeMentors = async (req, res) => {
   const { firebaseUserId } = req.params;
   try {
     const mentee = await Mentee.findOne({ firebaseUserId }, { myMentors: true })
-      .populate({ myMentors: 1 })
+      .populate("myMentors")
       .lean();
-    console.log("mentee mentors", mentee);
     const mentors = mentee.myMentors;
+    console.log("mentee mentors", mentors);
     res.json(mentors);
   } catch (e) {
+    console.log("e", e);
     return res.status(500).send({
       status: "error",
       message: "Error fetching Mentee data from database",
-      error: error,
+      error: e,
     });
   }
 };
@@ -393,6 +460,7 @@ module.exports = {
   deActivateMenteeById,
   reactivateMenteeById,
   getAllMentees,
+  getMenteeByfuid,
   getMenteeById,
   addMentee,
   updateMenteeById,

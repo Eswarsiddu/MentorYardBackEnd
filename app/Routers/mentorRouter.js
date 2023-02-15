@@ -13,28 +13,33 @@ const {
   getInactiveMentors,
   connectMentorAndMentee,
   disconnectMentorAndMentee,
+  createMentorBio,
+  getMentorByfuid,
+  getMentorMentees,
 } = require("../Routes/Controllers/mentorController");
 
 const mentorRouter = Router();
 
-mentorRouter.post("/", addMentor);
+mentorRouter.post("/:firebaseUserId", addMentor);
+mentorRouter.put("/connect", connectMentorAndMentee);
+mentorRouter.get("/filter", getFilteredMentors);
+mentorRouter.get("/id/:id", getMentorById);
+mentorRouter.get("/uid/:firebaseUserId", getMentorByfuid);
+mentorRouter.post("/createbio/:firebaseUserId", createMentorBio);
+mentorRouter.put("/:firebaseUserId", updateMentorById);
+mentorRouter.get("/mymentees/:firebaseUserId", getMentorMentees);
 
 mentorRouter.get("/active", getActiveMentors);
 mentorRouter.get("/inactive", getInactiveMentors);
 mentorRouter.put("/deactivate/:mentorId", deActivateMentorById);
 mentorRouter.put("/reactivate/:mentorId", reActivateMentorById);
 
-mentorRouter.put("/connect", connectMentorAndMentee);
 mentorRouter.put("/disconnect", disconnectMentorAndMentee);
-
-mentorRouter.get("/filter", getFilteredMentors);
 
 mentorRouter.get("/", getAllMentors);
 
-mentorRouter.get("/:mentorId", getMentorById);
 mentorRouter.get("/my-mentors/:menteeId", getMentorsByMenteeId);
 
-mentorRouter.put("/:mentorId", updateMentorById);
 mentorRouter.delete("/:mentorId", deleteMentorById);
 
 module.exports = mentorRouter;

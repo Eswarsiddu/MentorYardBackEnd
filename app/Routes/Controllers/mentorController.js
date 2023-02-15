@@ -4,6 +4,7 @@ const User = require("../../models/user");
 const mongoose = require("mongoose");
 const ROLES = require("../../utils/enums/ROLES");
 const validator = require("validator");
+const mentor = require("../../models/mentor");
 
 // Admin Dashboard
 const getAllMentors = async (req, res) => {
@@ -119,10 +120,36 @@ const createMentorBio = async (req, res) => {
 };
 
 // Mentor Dashboard ------ My Profile
-const getMentorById = async (req, res) => {
+const getMentorByfuid = async (req, res) => {
   const { firebaseUserId } = req.params;
   try {
     const mentor = await Mentor.findOne({ firebaseUserId });
+    if (!mentor) {
+      res.status(404).send({
+        status: "error",
+        message: "No such mentor ",
+      });
+    } else {
+      res.send({
+        status: "success",
+        message: "Successfully got mentor details",
+        mentor,
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      status: "error",
+      message: "Error fetching data from the database",
+      error,
+    });
+  }
+};
+
+const getMentorById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const mentor = await Mentor.findById(id);
     if (!mentor) {
       res.status(404).send({
         status: "error",
@@ -193,7 +220,7 @@ const updateMentorById = async (req, res) => {
     res.send({
       status: "success",
       message: "Mentor details updated successfully",
-      updatedMentor,
+      mentor,
     });
   } catch (err) {
     console.error(err);
@@ -221,7 +248,7 @@ const deleteMentorById = async (req, res) => {
         message: "No such mentor found",
       });
     }
-    // // Update the mentee to remove the deleted mentor
+    // Update the mentee to remove the deleted mentor
     const menteeId = deletedMentor.menteeId;
     const updateMentee = await Mentee.updateOne(
       { _id: menteeId },
@@ -381,38 +408,34 @@ const reActivateMentorById = async (req, res) => {
 // make connection
 const connectMentorAndMentee = async (req, res) => {
   const { menteeId, mentorId } = req.body;
-
-  if (
-    !mongoose.Types.ObjectId.isValid(menteeId) ||
-    !mongoose.Types.ObjectId.isValid(mentorId)
-  ) {
-    return res.status(400).send({
-      status: "error",
-      message: "Invalid Mentor or Mentee Id",
-    });
-  }
-
+  console.log("connect", { menteeId, mentorId });
   try {
-    const mentor = await Mentor.findOne({ _id: mentorId, isDeleted: false });
+    const mentor = await Mentor.findById(mentorId);
     if (!mentor) {
       return res.status(404).send({
         status: "error",
         message: "Mentor not found or deleted",
       });
     }
-    const mentee = await Mentee.findOne({ _id: menteeId, isDeleted: false });
+    const mentee = await Mentee.findOne({ firebaseUserId: menteeId });
     if (!mentee) {
       return res.status(404).send({
         status: "error",
         message: "Mentee not found or deleted",
       });
     }
-    await Mentor.findByIdAndUpdate(mentorId, {
-      $addToSet: { myMentees: menteeId },
-    });
-    await Mentee.findByIdAndUpdate(menteeId, {
-      $addToSet: { myMentors: mentorId },
-    });
+    mentor.myMentees.push(mentee._id);
+    mentee.myMentors.push(mentor._id);
+    mentor.myMentees = Array.from(new Set(mentor.myMentees));
+    mentee.myMentors = Array.from(new Set(mentee.myMentors));
+    await mentor.save();
+    await mentee.save();
+    // await Mentor.findByIdAndUpdate(mentorId, {
+    //   $addToSet: { myMentees: menteeId },
+    // });
+    // await Mentee.findByIdAndUpdate(menteeId, {
+    //   $addToSet: { myMentors: mentorId },
+    // });
     res.send({
       status: "success",
       message: "Connected Successfully",
@@ -420,6 +443,7 @@ const connectMentorAndMentee = async (req, res) => {
       mentee,
     });
   } catch (err) {
+    console.log("error", err);
     res.status(500).send({
       status: "error",
       message: "Could not connect, please try again later",
@@ -512,7 +536,7 @@ const getMentorsByMenteeId = async (req, res) => {
 // mentee dashboard filter
 const getFilteredMentors = async (req, res) => {
   let filter = {};
-  const { name, occupation, designation, company, domain } = req.body;
+  const { name, occupation, designation, company, domain } = req.query;
 
   if (name) {
     filter.name = { $regex: name, $options: "i" };
@@ -534,9 +558,7 @@ const getFilteredMentors = async (req, res) => {
   }
 
   try {
-    const mentors = await Mentor.find(filter).select(
-      "name occupation designation company domain"
-    );
+    const mentors = await Mentor.find(filter);
     if (mentors.length === 0) {
       return res.status(404).send({
         status: "error",
@@ -557,9 +579,29 @@ const getFilteredMentors = async (req, res) => {
   }
 };
 
+const getMentorMentees = async (req, res) => {
+  const { firebaseUserId } = req.params;
+  try {
+    const mentor = await Mentor.findOne({ firebaseUserId }, { myMentors: true })
+      .populate("myMentees")
+      .lean();
+    const mentees = mentor.myMentees;
+    console.log("mentee mentors", mentees);
+    res.json(mentees);
+  } catch (e) {
+    console.log("e", e);
+    return res.status(500).send({
+      status: "error",
+      message: "Error fetching Mentee data from database",
+      error: e,
+    });
+  }
+};
+
 module.exports = {
   getFilteredMentors,
   getMentorsByMenteeId,
+  getMentorByfuid,
   getMentorById,
   createMentorBio,
   addMentor,
@@ -572,4 +614,5 @@ module.exports = {
   reActivateMentorById,
   connectMentorAndMentee,
   disconnectMentorAndMentee,
+  getMentorMentees,
 };
